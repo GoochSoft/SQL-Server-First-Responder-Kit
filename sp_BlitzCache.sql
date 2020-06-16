@@ -1918,8 +1918,8 @@ FROM   (SELECT TOP (@Top) x.*, xpa.*,
         FROM   sys.#view# x
                CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixpa
                             WHERE ixpa.attribute = ''dbid'') AS xpa
-               CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixpa 
-                            WHERE ixpa.attribute = ''user_id'') AS xspa '+ @nl ;
+               CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixspa
+                            WHERE ixspa.attribute = ''user_id'') AS xspa '+ @nl ;
 
 
 IF @VersionShowsAirQuoteActualPlans = 1
@@ -1949,12 +1949,19 @@ IF @DatabaseName IS NOT NULL OR @DatabaseName <> N''
                  + N') ' + @nl;
 	END; 
 
-IF @SchemaName IS NOT NULL OR @SchemaName <> N''
+DECLARE @SchemaID BIGINT;
+DECLARE @SchemaSQL NVARCHAR(256);
+IF (@SchemaName IS NOT NULL OR @SchemaName <> N'') AND (@DatabaseName IS NOT NULL OR @DatabaseName <> N'')
 	BEGIN 
     RAISERROR(N'Filtering schema name chosen', 0, 1) WITH NOWAIT;
-	SET @body += N'               AND CAST(xspa.value AS BIGINT) = SCHEMA_ID(N'
-                 + QUOTENAME(@SchemaName, N'''')
-                 + N') ' + @nl;
+	SET @SchemaSQL = 'USE ' + QUOTENAME(@DatabaseName) + ';' + @nl + '    SELECT  @id = SCHEMA_ID(' + QUOTENAME(@SchemaName, N'''') + ');'
+
+	EXEC SP_EXECUTESQL @SchemaSQL
+    ,   N'@id BIGINT OUTPUT'
+    ,   @id = @SchemaID OUTPUT
+
+	SET @body += N'               AND CAST(xspa.value AS BIGINT) = ' + CAST(@SchemaID AS NVARCHAR(128)) + @nl;
+	PRINT @body;
 	END; 
 
 IF (SELECT COUNT(*) FROM #only_sql_handles) > 0
