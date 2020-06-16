@@ -270,7 +270,8 @@ ALTER PROCEDURE dbo.sp_BlitzCache
 	@MinutesBack INT = NULL,
 	@Version     VARCHAR(30) = NULL OUTPUT,
 	@VersionDate DATETIME = NULL OUTPUT,
-	@VersionCheckMode BIT = 0
+	@VersionCheckMode BIT = 0,
+	@SchemaName NVARCHAR(128) = NULL
 WITH RECOMPILE
 AS
 BEGIN
@@ -1915,8 +1916,10 @@ FROM   (SELECT TOP (@Top) x.*, xpa.*,
                           THEN DATEDIFF(mi, cached_time, last_execution_time) 
                           ELSE Null END) as MONEY) as age_minutes_lifetime
         FROM   sys.#view# x
+               CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixpa
+                            WHERE ixpa.attribute = ''dbid'') AS xpa '
                CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixpa 
-                            WHERE ixpa.attribute = ''dbid'') AS xpa ' + @nl ;
+                            WHERE ixpa.attribute = ''user_id'') AS xspa '+ @nl ;
 
 
 IF @VersionShowsAirQuoteActualPlans = 1
@@ -1943,6 +1946,14 @@ IF @DatabaseName IS NOT NULL OR @DatabaseName <> N''
     RAISERROR(N'Filtering database name chosen', 0, 1) WITH NOWAIT;
 	SET @body += N'               AND CAST(xpa.value AS BIGINT) = DB_ID(N'
                  + QUOTENAME(@DatabaseName, N'''')
+                 + N') ' + @nl;
+	END; 
+
+IF @SchemaName IS NOT NULL OR @SchemaName <> N''
+	BEGIN 
+    RAISERROR(N'Filtering schema name chosen', 0, 1) WITH NOWAIT;
+	SET @body += N'               AND CAST(xspa.value AS BIGINT) = SCHEMA_ID(N'
+                 + QUOTENAME(@SchemaName, N'''')
                  + N') ' + @nl;
 	END; 
 
