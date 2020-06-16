@@ -1961,7 +1961,6 @@ IF (@SchemaName IS NOT NULL OR @SchemaName <> N'') AND (@DatabaseName IS NOT NUL
     ,   @id = @SchemaID OUTPUT
 
 	SET @body += N'               AND CAST(xspa.value AS BIGINT) = ' + CAST(@SchemaID AS NVARCHAR(128)) + @nl;
-	PRINT @body;
 	END; 
 
 IF (SELECT COUNT(*) FROM #only_sql_handles) > 0
