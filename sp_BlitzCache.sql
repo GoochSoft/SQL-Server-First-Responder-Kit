@@ -1917,7 +1917,7 @@ FROM   (SELECT TOP (@Top) x.*, xpa.*,
                           ELSE Null END) as MONEY) as age_minutes_lifetime
         FROM   sys.#view# x
                CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixpa
-                            WHERE ixpa.attribute = ''dbid'') AS xpa '
+                            WHERE ixpa.attribute = ''dbid'') AS xpa
                CROSS APPLY (SELECT * FROM sys.dm_exec_plan_attributes(x.plan_handle) AS ixpa 
                             WHERE ixpa.attribute = ''user_id'') AS xspa '+ @nl ;
 
